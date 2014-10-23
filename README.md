@@ -1,3 +1,14 @@
+### Openwrt 15.07 ( Barrier Braker ) with improvements for Raspberry PI
+
+#### Changes:
+
+* removed patch 910-01 and 920 from kernel/mac80211 to make rt2800 wireless devices work again,
+  i suggest that the initialisation of the tx_pin got messed up  
+* added populatefs from my own repro, original from https://github.com/oskarirauta/populatefs needed some tweaks, also tools/e2fsprogs/Makfile needed some changes to 
+  make populatefs work, i am waiting eager for e2fsprogs 1.43 with the new -d switch so we can create ext4 filesystems and populate them without all that foo
+* added all the patches from https://github.com/rpi-openwrt/patches and made them work with the final 14.07 changeset.
+
+
 This is the buildsystem for the OpenWrt Linux distribution.
 
 Please use "make menuconfig" to configure your appreciated
