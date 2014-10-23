@@ -1,4 +1,4 @@
-### Openwrt 15.07 ( Barrier Braker ) with improvements for Raspberry PI
+### Openwrt 14.07 ( Barrier Braker ) with improvements for Raspberry PI
 
 #### Changes:
 
