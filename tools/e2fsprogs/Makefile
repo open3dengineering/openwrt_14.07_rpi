@@ -42,6 +42,9 @@ define Host/Install
 	$(CP) $(STAGING_DIR_HOST)/include/uuid $(STAGING_DIR_HOST)/include/e2fsprogs/
 	rm -rf $(STAGING_DIR_HOST)/include/uuid
 	$(INSTALL_DATA) $(HOST_BUILD_DIR)/lib/uuid/libuuid.a $(STAGING_DIR_HOST)/lib/
+	$(CP) $(HOST_BUILD_DIR)/lib/ext2fs $(STAGING_DIR_HOST)/include/
+	$(INSTALL_DATA) $(HOST_BUILD_DIR)/lib/ext2fs/libext2fs.a $(STAGING_DIR_HOST)/lib/
+	$(INSTALL_DATA) $(HOST_BUILD_DIR)/lib/libcom_err.a $(STAGING_DIR_HOST)/lib/
 endef
 
 define Host/Clean

@@ -208,12 +208,18 @@ ifneq ($(CONFIG_TARGET_ROOTFS_EXT4FS),)
   E2SIZE=$(shell echo $$(($(CONFIG_TARGET_ROOTFS_PARTSIZE)*1024*1024/$(CONFIG_TARGET_EXT4_BLOCKSIZE))))
 
   define Image/mkfs/ext4
-# generate an ext2 fs
-	$(STAGING_DIR_HOST)/bin/genext2fs -U -B $(CONFIG_TARGET_EXT4_BLOCKSIZE) -b $(E2SIZE) -N $(CONFIG_TARGET_EXT4_MAXINODE) -d $(TARGET_DIR)/ $(KDIR)/root.ext4 -m $(CONFIG_TARGET_EXT4_RESERVED_PCT) $(MKFS_DEVTABLE_OPT)
-# convert it to ext4
-	$(STAGING_DIR_HOST)/bin/tune2fs $(if $(CONFIG_TARGET_EXT4_JOURNAL),-j) -O extents,uninit_bg,dir_index $(KDIR)/root.ext4
-# fix it up
-	$(STAGING_DIR_HOST)/bin/e2fsck -fy $(KDIR)/root.ext4
+	# generate a ext4 fs
+	dd if=/dev/zero of=$(KDIR)/root.ext4 seek=$(E2SIZE) count=0 bs=$(CONFIG_TARGET_EXT4_BLOCKSIZE)
+	# convert it to ext4
+	$(STAGING_DIR_HOST)/bin/mkfs.ext4 -F -E root_owner=0:0 -L OpenWrt -N $(CONFIG_TARGET_EXT4_MAXINODE) \
+		-b $(CONFIG_TARGET_EXT4_BLOCKSIZE) \
+		-O has_journal,ext_attr,resize_inode,dir_index,filetype,extent,flex_bg,sparse_super,large_file,uninit_bg,dir_nlink,extra_isize \
+		-m $(CONFIG_TARGET_EXT4_RESERVED_PCT) \
+		$(KDIR)/root.ext4
+	# populate it
+	$(STAGING_DIR_HOST)/bin/populatefs -U -d $(TARGET_DIR) $(MKFS_DEVTABLE_OPT) $(KDIR)/root.ext4
+	# check it
+	$(STAGING_DIR_HOST)/bin/fsck.ext4 -fy $(KDIR)/root.ext4
 	$(call Image/Build,ext4)
   endef
 endif

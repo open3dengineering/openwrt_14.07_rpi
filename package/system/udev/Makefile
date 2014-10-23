@@ -15,6 +15,7 @@ PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
 PKG_SOURCE_URL:=@KERNEL/linux/utils/kernel/hotplug/
 PKG_MD5SUM:=91a88a359b60bbd074b024883cc0dbde
 
+include $(INCLUDE_DIR)/host-build.mk
 include $(INCLUDE_DIR)/package.mk
 
 PKG_INSTALL=1
@@ -40,6 +41,39 @@ endef
 
 define Package/udev/config
 	source "$(SOURCE)/Config.in"
+endef
+
+HOST_CONFIGURE_ARGS += \
+	--prefix="/usr" \
+	--exec-prefix= \
+	--sysconfdir="/etc" \
+	--disable-hwdb \
+	--disable-keymap \
+	--disable-gudev \
+	--disable-introspection \
+	--libexecdir="/lib/udev" \
+	--disable-gtk-doc-pdf \
+	--sbindir="/sbin" \
+	--disable-logging \
+	--disable-debug \
+	--disable-edd \
+	--disable-floppy
+
+define Host/Compile
+	$(MAKE) -C $(HOST_BUILD_DIR)
+	$(MAKE) -C $(HOST_BUILD_DIR) DESTDIR="$(HOST_BUILD_DIR)/host-install" \
+		install
+endef
+
+define Host/Install
+	$(INSTALL_DIR) $(STAGING_DIR_HOST)/include
+	$(CP) $(HOST_BUILD_DIR)/host-install/usr/include/libudev.h $(STAGING_DIR_HOST)/iclude/
+	$(INSTALL_DIR) $(STAGING_DIR_HOST)/share/pkgconfig
+	$(CP) $(HOST_BUILD_DIR)/host-install/usr/share/pkgconfig/udev.pc $(STAGING_DIR_HST)/share/pkgconfig/
+	$(INSTALL_DIR) $(STAGING_DIR_HOST)/lib
+	$(CP) $(HOST_BUILD_DIR)/host-install/lib/libudev.so* $(STAGING_DIR_HOST)/lib/
+	$(INSTALL_DIR) $(STAGING_DIR_HOST)/lib/pkgconfig
+	$(CP) $(HOST_BUILD_DIR)/host-install/lib/pkgconfig/libudev.pc $(STAGING_DIR_HOST)/lib/pkgconfig/
 endef
 
 udev-args-$(CONFIG_UDEV_DISABLE_LOGGING) += --disable-logging
@@ -153,4 +187,5 @@ ifneq ($(udev-extra-lib-data-y),)
 endif
 endef
 
+$(eval $(call HostBuild))
 $(eval $(call BuildPackage,udev))
