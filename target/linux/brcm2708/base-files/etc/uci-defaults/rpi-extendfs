@@ -1,0 +1,89 @@
+#!/bin/sh
+
+ceil_val=
+floor_val=
+ROOTPART=mmcblk0p2
+SECTSIZE=$(cat /sys/block/mmcblk0/queue/hw_sector_size)
+STARTSECT=$(cat /sys/block/mmcblk0/${ROOTPART}/start)
+LASTSECT=$(cat /sys/block/mmcblk0/${ROOTPART}/size)
+MAXSIZE=$(cat /sys/block/mmcblk0/size)
+PARTSIZE=$(((${LASTSECT} / $(( 1024 / ${SECTSIZE} ))) / 1024))
+MAXMB=$((((${MAXSIZE} - ${STARTSECT} - 1) / $(( 1024 / ${SECTSIZE} ))) / 1024))
+MINSECT=$((${LASTSECT} - 1 + ${STARTSECT}))
+NEWSIZE=0
+USESECTORS=0
+TARGETSECTOR=0
+TARGETSIZE=0
+
+
+floor() {
+    float_in=$1
+    floor_val=${float_in/.*}
+}
+
+ceiling() {
+    float_in=$1
+    ceil_val=${float_in/.*}
+    ceil_val=$((ceil_val+1))
+}
+
+
+for DEVNAME in /dev/mmcblk0p**; do
+	[ "$DEVNAME" != "/dev/mmcblk0p1" ] && [ $DEVNAME != "/dev/mmcblk0p2" ] && {
+	        logger -t rpi-extendfs "Partitioning scheme is not standard.\nNon-standard partition schemes are not supported\nby this tool." 
+		clear
+		exit 1
+	}
+done
+
+ceiling $PARTSIZE
+PARTSIZE=$ceil_val
+floor $MAXMB
+MAXMB=$floor_val
+
+resizefs_doit() {
+	TARGETSIZE=$((((${TARGETSECTOR} - ${STARTSECT}) / $(( 1024 / ${SECTSIZE} ))) / 1024))
+
+	clear
+	/usr/sbin/fdisk /dev/mmcblk0 <<EOF
+p
+d
+2
+n
+p
+2
+$STARTSECT
+$TARGETSECTOR
+p
+w
+EOF
+
+	cat <<\EOF > /etc/init.d/resize2fs_once &&
+#!/bin/sh /etc/rc.common
+
+START=18
+
+start() {
+	/usr/sbin/resize2fs /dev/root
+	/etc/init.d/resize2fs_once disable
+	rm /etc/init.d/resize2fs_once
+}
+
+stop() {
+	echo
+}
+EOF
+	chmod a+x /etc/init.d/resize2fs_once
+	/etc/init.d/resize2fs_once enable
+	logger -t rpi-extendfs "Resizing will be completed\nafter reboot.\n\nRebooting now!" 
+	reboot
+}
+
+resizefs() {
+
+	TARGETSECTOR=$(( ${MAXSIZE} - 1 ))
+	resizefs_doit
+	
+}
+
+resizefs
